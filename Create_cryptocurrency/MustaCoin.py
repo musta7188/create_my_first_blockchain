@@ -20,36 +20,37 @@ from urllib.parse import urlparse
 class Blockchain:
      
     def __init__(self):
-        self.chain = [];#difference blocks mined
-        self.create_block(proof = 1, previous_hash = '0') #genesis block the first block 1
+        self.chain = [];
+        self.transactions= [] #transaction has to be added before and later create the block and add the transactions 
+        self.create_block(proof = 1, previous_hash = '0')
+        self.nodes = set()
         
-    def create_block(self, proof, previous_hash): #proof is the solution of the alog from the mining proccess 
+    def create_block(self, proof, previous_hash):
         block = {'index': len(self.chain) +1 ,
                  'timestamp': str(datetime.datetime.now()),
                  'proof': proof,
-                 'previous_hash': previous_hash}
-        #here where we define all the data that our block need to contain 
-        
+                 'previous_hash': previous_hash,
+                 'transactions': self.transactions
+                 }
+        self.transactions = []; #after adding the transaction to the block we need to empty the list as no the same transaction goas in all the blocks
         self.chain.append(block)
         return block
         
     
     def get_previous_block(self):
-        return self.chain[-1] #return the last block in the chain
+        return self.chain[-1] 
     
-    
-    # this is the proof of work function, where we need to define a problem that is challange to solve but easy to verify 
+
     
     def proof_of_work(self, previous_proof):
         new_proof = 1
         check_proof = False
         
         while check_proof is False:
-            #has_opearton using the new_proof will try to create random hexdechimal format which the first 3 charactar are 4 zeros if is not will increament new_proof by 1 and try
-            #until it get the write one
-            hash_operation = hashlib.sha256(str(new_proof**2 - previous_proof**2).encode()).hexdigest() #this contain the problem to solve #encode add b infront of 
-             
-            if hash_operation[:4] == '0000':#leading zero condition is our condition that has to be meet for the algotihm 
+
+            hash_operation = hashlib.sha256(str(new_proof**2 - previous_proof**2).encode()).hexdigest()
+            
+            if hash_operation[:4] == '0000':
                 check_proof = True
             
             else:
@@ -61,16 +62,14 @@ class Blockchain:
             
     def hash(self, block):
         
-        #convert the dictionary block into a string using the json.dumps library
         
-        encoded_block = json.dumps(block, sort_keys = True).encode() #it will sort the block dictionary is sorted by key 
         
-        return hashlib.sha256(encoded_block).hexdigest() #return the cryptografic hash of the block
+        encoded_block = json.dumps(block, sort_keys = True).encode() 
+        
+        return hashlib.sha256(encoded_block).hexdigest() 
     
     
-    #check if our block chain is valid, and we need to check 2 things
-    # 1- check that the previous hash of each block is equal to the hash of its previous block
-    # 2 - check that the proof of the each block is valid according to our proof of work function
+
     
     def is_chain_valid(self, chain):
         previous_block = self.chain[0]
@@ -92,6 +91,47 @@ class Blockchain:
             block_index+=1
             
         return True
+    
+    
+    
+    def add_transactions(self, sender, receiver, amount):
+        self.transactions.append({'sender': sender,
+                                  'receiver': receiver,
+                                  'amount': amount})
+        previous_block = self.get_previous_block()
+        
+        return previous_block['index']+1
+        
+        
+    def add_node(self, address):
+        parsed_url = urlparse(address)
+        self.nodes.add(parsed_url.netloc)
+        
+        
+    
+    #the below function check what is the longest chain the blockchain between nodes, and if it found one which is longest that the current one it replace it 
+    #and return true....the method use the request to male a call to the nodes using the IP addess of each node which is saved in the set of the ndoe
+        
+        
+    def replace_chain(self):#find the longest chain in the nodes and replace the other nodes one with that one
+        network = self.nodes
+        longest_chain = None
+        max_length = leng(self.chain)#current chain the blockchain, if we find one that is longer we going to replace it
+         for nodes in network:
+             response = requests.get(f'http://{node}/get_chain')
+             if response.status_code == 200:
+                 length = response.json()['length']
+                 chain = response.json()['chain']
+                 if length > max_length and self.is_chain_valid(chain):
+                     max_length = length
+                     longest_chain = chain
+        
+        if longest_chain:
+            self.chain = longest_chain
+            return True
+    
+        return False
+        
         
         
         
@@ -141,9 +181,9 @@ def mine_block():
 
 # Getting the full Blockchain
 
-@app.route('/get_chain', methods=['GET'])#declare the route and the request method get
+@app.route('/get_chain', methods=['GET'])
 
-def get_chain():#display the full chain of the blockchain
+def get_chain():
     response = {'chain':blockchain.chain,
                 'length':len(blockchain.chain)}
     return jsonify(response), 200
@@ -166,6 +206,17 @@ def is_valid():
         
     return jsonify(response), 200
     
+
+
+# Part 3 - Decentralizing our Blockchain 
+
+
+
+
+
+
+
+
 
     
 
