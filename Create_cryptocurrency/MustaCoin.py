@@ -117,7 +117,7 @@ class Blockchain:
         network = self.nodes
         longest_chain = None
         max_length = leng(self.chain)#current chain the blockchain, if we find one that is longer we going to replace it
-         for nodes in network:
+         for node in network:
              response = requests.get(f'http://{node}/get_chain')
              if response.status_code == 200:
                  length = response.json()['length']
@@ -186,7 +186,6 @@ def mine_block():
 
 
 
-
 # Getting the full Blockchain
 
 @app.route('/get_chain', methods=['GET'])
@@ -215,13 +214,65 @@ def is_valid():
     return jsonify(response), 200
     
 
+# adding a new transaction to the blockchain 
+
+@app.route('/add_transaction', methods = ['POST')]
+           
+        
+           
+def add_transaction():
+    json = request.get_json()
+    transaction_keys = ['sender', 'receiver', 'amount']
+    if not all(key in json for key in transaction_keys):#if all the keys in our transactions file are not in the json file return warning
+        return 'Some elements of the transaction are missing', 400
+    
+    index = blockchain.add_transactions(json['sender'], json['receiver'], json['amount'])
+    response = {'message': f'This transaction will be added to Block {index}'}
+    return jsonfy(response), 201
+    
+           
+           
+           
 
 # Part 3 - Decentralizing our Blockchain 
 
 
+# Connecting new nodes
+
+@app.route('/connect_node', methods = ['POST'])
+
+def connect_node():
+    json = request.get_json()
+    nodes = json.get('nodes')#it will get the value of the key nodes, which are address IP of the nodes
+    if nodes is None:
+        return "Node node", 400
+    
+    for node in nodes:
+        blockchain.add_node(node)
+    
+    response = {'Message':'All the nodes are now connected. The Musta Coin blockchain now contains the following nodes',
+                "total _nodes": list(blockchain.nodes)
+                }
+    return response, 201
 
 
+# Replacing the chain by the longest chain if needed
 
+@app.route('/replace_chain', methods = ['GET'])
+
+def replace_chain():
+    
+    is_chain_replaced = blockchain.replace_chain()#retunr a boolean value
+    
+    if is_chain_replaced:
+        response = {'message': 'The node had differernt chaines so the chain was replaced by the longest one.',
+                    'new_hain': blockchain.chain }
+    else:
+        response = {'message': 'All good the chain was the longest one',
+                    'actual_chain': blockchain.chain}
+    return jsonfy(response), 200
+
+    
 
 
 
