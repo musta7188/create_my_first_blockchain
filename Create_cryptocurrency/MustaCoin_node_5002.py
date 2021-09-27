@@ -72,7 +72,7 @@ class Blockchain:
 
     
     def is_chain_valid(self, chain):
-        previous_block = self.chain[0]
+        previous_block = chain[0]
         block_index = 1
         
         while block_index < len(chain):
@@ -112,20 +112,21 @@ class Blockchain:
     #the below function check what is the longest chain the blockchain between nodes, and if it found one which is longest that the current one it replace it 
     #and return true....the method use the request to male a call to the nodes using the IP addess of each node which is saved in the set of the ndoe
         
-        
     def replace_chain(self):#find the longest chain in the nodes and replace the other nodes one with that one
         network = self.nodes
         longest_chain = None
-        max_length = leng(self.chain)#current chain the blockchain, if we find one that is longer we going to replace it
+        max_length = len(self.chain)#current chain the blockchain, if we find one that is longer we going to replace it
         for node in network:
-             response = requests.get(f'http://{node}/get_chain')
-             if response.status_code == 200:
-                 length = response.json()['length']
-                 chain = response.json()['chain']
-                 if length > max_length and self.is_chain_valid(chain):
-                     max_length = length
-                     longest_chain = chain
-        
+          response = requests.get(f'http://{node}/get_chain')
+          print(response.json())
+          if response.status_code == 200: 
+              length = response.json()['length']
+              chain = response.json()['chain']
+              print(length > max_length)
+              print(self.is_chain_valid(chain))
+              if length > max_length and self.is_chain_valid(chain):
+                  max_length = length
+                  longest_chain = chain
         if longest_chain:
             self.chain = longest_chain
             return True
@@ -154,6 +155,9 @@ node_address = str(uuid4()) #this will generate a random node address
 node_address = node_address.replace('-','')
 
 
+
+
+
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
 # Creating a Blockchain
@@ -171,7 +175,7 @@ def mine_block():
     previous_proof = previous_block['proof']
     proof = blockchain.proof_of_work(previous_proof)
     previous_hash = blockchain.hash(previous_block)
-    blockchain.add_transactions(sender = node_address, receiver = 'Musta', amount = 1)
+    blockchain.add_transactions(sender = node_address, receiver = 'Armela', amount = 1)
     block = blockchain.create_block(proof, previous_hash)
     
     response = {'message':'Congratulations, you just mined a block!',
@@ -216,8 +220,7 @@ def is_valid():
 
 # adding a new transaction to the blockchain 
 
-@app.route('/add_transaction', methods = ['POST'])
-           
+@app.route('/add_transaction', methods = ['POST'])       
         
            
 def add_transaction():
@@ -280,5 +283,4 @@ def replace_chain():
     
 
 # Running the app
-
-app.run(host = '0.0.0.0', port = 5000)
+app.run(host = '0.0.0.0', port = 5002)
